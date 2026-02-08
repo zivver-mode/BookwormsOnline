@@ -1,0 +1,93 @@
+@page
+@model BookwormsOnline.Pages.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<h2>Register</h2>
+
+<form method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="mb-2">
+        <label asp-for="Input.FirstName"></label>
+        <input asp-for="Input.FirstName" class="form-control" />
+        <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-2">
+        <label asp-for="Input.LastName"></label>
+        <input asp-for="Input.LastName" class="form-control" />
+        <span asp-validation-for="Input.LastName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-2">
+        <label asp-for="Input.Email"></label>
+        <input asp-for="Input.Email" class="form-control" />
+        <span asp-validation-for="Input.Email" class="text-danger"></span>
+    </div>
+
+    <div class="mb-2">
+        <label asp-for="Input.MobileNo"></label>
+        <input asp-for="Input.MobileNo" class="form-control" />
+        <span asp-validation-for="Input.MobileNo" class="text-danger"></span>
+    </div>
+
+    <div class="mb-2">
+        <label asp-for="Input.BillingAddress"></label>
+        <input asp-for="Input.BillingAddress" class="form-control" />
+        <span asp-validation-for="Input.BillingAddress" class="text-danger"></span>
+    </div>
+
+    <div class="mb-2">
+        <label asp-for="Input.ShippingAddress"></label>
+        <input asp-for="Input.ShippingAddress" class="form-control" />
+        <span asp-validation-for="Input.ShippingAddress" class="text-danger"></span>
+    </div>
+
+    <div class="mb-2">
+        <label asp-for="Input.CreditCard"></label>
+        <input asp-for="Input.CreditCard" class="form-control" />
+        <span asp-validation-for="Input.CreditCard" class="text-danger"></span>
+    </div>
+
+    <div class="mb-2">
+        <label asp-for="Input.Password"></label>
+        <input asp-for="Input.Password" class="form-control" id="pw" />
+        <span asp-validation-for="Input.Password" class="text-danger"></span>
+        <small id="pwHelp" class="form-text"></small>
+    </div>
+
+    <div class="mb-2">
+        <label asp-for="Input.ConfirmPassword"></label>
+        <input asp-for="Input.ConfirmPassword" class="form-control" />
+        <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+    </div>
+
+    <div class="mb-2">
+        <label asp-for="Input.Photo">Photo (JPG only)</label>
+        <input asp-for="Input.Photo" type="file" class="form-control" />
+        <span asp-validation-for="Input.Photo" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Register</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const pw = document.getElementById("pw");
+        const help = document.getElementById("pwHelp");
+
+        pw.addEventListener("input", () => {
+            const p = pw.value;
+            const len = p.length >= 12;
+            const upper = /[A-Z]/.test(p);
+            const lower = /[a-z]/.test(p);
+            const digit = /\d/.test(p);
+            const special = /[^A-Za-z0-9]/.test(p);
+
+            help.textContent = `Min12: ${len} | Upper: ${upper} | Lower: ${lower} | Num: ${digit} | Special: ${special}`;
+        });
+    </script>
+}
