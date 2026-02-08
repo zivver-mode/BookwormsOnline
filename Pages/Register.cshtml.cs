@@ -1,10 +1,11 @@
 using BookwormsOnline.Data;
 using BookwormsOnline.Models;
 using BookwormsOnline.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace BookwormsOnline.Pages
 {
@@ -14,17 +15,20 @@ namespace BookwormsOnline.Pages
         private readonly AuthDbContext _db;
         private readonly AesEncryptionService _crypto;
         private readonly IWebHostEnvironment _env;
+        private readonly RecaptchaService _recaptcha;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
             AuthDbContext db,
             AesEncryptionService crypto,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            RecaptchaService recaptcha)
         {
             _userManager = userManager;
             _db = db;
             _crypto = crypto;
             _env = env;
+            _recaptcha = recaptcha;
         }
 
         [BindProperty]
@@ -61,6 +65,10 @@ namespace BookwormsOnline.Pages
 
             [Required]
             public IFormFile Photo { get; set; } = default!;
+
+            // reCAPTCHA v3 token
+            [Required]
+            public string RecaptchaToken { get; set; } = "";
         }
 
         public void OnGet() { }
@@ -69,33 +77,47 @@ namespace BookwormsOnline.Pages
         {
             if (!ModelState.IsValid) return Page();
 
-            // Unique email check (assignment requirement)
+            // reCAPTCHA v3 verify
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+            var (ok, score, details) = await _recaptcha.VerifyAsync(Input.RecaptchaToken, "register", ip);
+
+            if (!ok)
+            {
+                ModelState.AddModelError(string.Empty, $"reCAPTCHA failed. {details}");
+                await LogAsync(null, Input.Email, "REGISTER", false, $"reCAPTCHA failed: {details} (score {score:0.00})");
+                return Page();
+            }
+
+            // Unique email check
             var existing = await _userManager.FindByEmailAsync(Input.Email);
             if (existing != null)
             {
                 ModelState.AddModelError(string.Empty, "Email is already registered.");
+                await LogAsync(null, Input.Email, "REGISTER", false, "Duplicate email");
                 return Page();
             }
 
-            // JPG-only validation
+            // JPG-only validation (extension + MIME + magic bytes)
             if (!IsJpeg(Input.Photo))
             {
                 ModelState.AddModelError("Input.Photo", "Photo must be a .JPG/.JPEG image.");
+                await LogAsync(null, Input.Email, "REGISTER", false, "Invalid photo type");
                 return Page();
             }
 
-            // Save photo
-            var uploads = Path.Combine(_env.WebRootPath, "uploads");
-            Directory.CreateDirectory(uploads);
-            var fileName = $"{Guid.NewGuid():N}.jpg";
-            var fullPath = Path.Combine(uploads, fileName);
+            // Save photo safely
+            var uploadsDir = Path.Combine(_env.WebRootPath, "uploads");
+            Directory.CreateDirectory(uploadsDir);
 
-            using (var fs = new FileStream(fullPath, FileMode.Create))
+            var fileName = $"{Guid.NewGuid():N}.jpg";
+            var fullPath = Path.Combine(uploadsDir, fileName);
+
+            using (var fs = new FileStream(fullPath, FileMode.CreateNew))
             {
                 await Input.Photo.CopyToAsync(fs);
             }
 
-            // Encrypt credit card before saving
+            // Encrypt CC before saving to DB
             var encryptedCc = _crypto.EncryptToBase64(Input.CreditCard);
 
             var user = new ApplicationUser
@@ -113,16 +135,8 @@ namespace BookwormsOnline.Pages
 
             var result = await _userManager.CreateAsync(user, Input.Password);
 
-            // Audit log (success/failure)
-            _db.AuditLogs.Add(new AuditLog
-            {
-                UserId = user.Id,
-                Email = Input.Email,
-                Action = "REGISTER",
-                Success = result.Succeeded,
-                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
-            });
-            await _db.SaveChangesAsync();
+            await LogAsync(user.Id, user.Email, "REGISTER", result.Succeeded,
+                result.Succeeded ? "Success" : string.Join("; ", result.Errors.Select(e => e.Code)));
 
             if (!result.Succeeded)
             {
@@ -135,20 +149,36 @@ namespace BookwormsOnline.Pages
             return RedirectToPage("/Login");
         }
 
+        private async Task LogAsync(string? userId, string? email, string action, bool success, string details)
+        {
+            _db.AuditLogs.Add(new AuditLog
+            {
+                UserId = userId,
+                Email = email,
+                Action = action,
+                Success = success,
+                Details = details,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+            });
+            await _db.SaveChangesAsync();
+        }
+
         private static bool IsJpeg(IFormFile file)
         {
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (ext != ".jpg" && ext != ".jpeg") return false;
+
             if (file.ContentType != "image/jpeg") return false;
 
-            // Magic bytes check: FF D8 ... FF D9
             using var stream = file.OpenReadStream();
             if (stream.Length < 4) return false;
 
+            // Header FF D8
             Span<byte> header = stackalloc byte[2];
             stream.Read(header);
             if (header[0] != 0xFF || header[1] != 0xD8) return false;
 
+            // Tail FF D9
             stream.Seek(-2, SeekOrigin.End);
             Span<byte> tail = stackalloc byte[2];
             stream.Read(tail);

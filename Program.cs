@@ -52,6 +52,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.AddScoped<AesEncryptionService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<RecaptchaService>();
 
 var app = builder.Build();
 

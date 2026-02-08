@@ -1,4 +1,5 @@
 @page
+@inject IConfiguration Config
 @model BookwormsOnline.Pages.RegisterModel
 @{
     ViewData["Title"] = "Register";
@@ -43,6 +44,7 @@
         <label asp-for="Input.ShippingAddress"></label>
         <input asp-for="Input.ShippingAddress" class="form-control" />
         <span asp-validation-for="Input.ShippingAddress" class="text-danger"></span>
+        <small class="form-text text-muted">Special characters are allowed.</small>
     </div>
 
     <div class="mb-2">
@@ -64,21 +66,28 @@
         <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
     </div>
 
-    <div class="mb-2">
+    <div class="mb-3">
         <label asp-for="Input.Photo">Photo (JPG only)</label>
-        <input asp-for="Input.Photo" type="file" class="form-control" />
+        <input asp-for="Input.Photo" type="file" class="form-control" accept=".jpg,.jpeg,image/jpeg" />
         <span asp-validation-for="Input.Photo" class="text-danger"></span>
     </div>
+
+    <!-- reCAPTCHA v3 token -->
+    <input type="hidden" asp-for="Input.RecaptchaToken" id="recaptchaToken" />
+    <span asp-validation-for="Input.RecaptchaToken" class="text-danger"></span>
 
     <button type="submit" class="btn btn-primary">Register</button>
 </form>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://www.google.com/recaptcha/api.js?render=@Config["Recaptcha:SiteKey"]"></script>
     <script>
         const pw = document.getElementById("pw");
         const help = document.getElementById("pwHelp");
+        const form = document.querySelector("form");
 
+        // Password strength feedback
         pw.addEventListener("input", () => {
             const p = pw.value;
             const len = p.length >= 12;
@@ -86,8 +95,22 @@
             const lower = /[a-z]/.test(p);
             const digit = /\d/.test(p);
             const special = /[^A-Za-z0-9]/.test(p);
+            help.textContent =
+                `Min12: ${len} | Upper: ${upper} | Lower: ${lower} | Num: ${digit} | Special: ${special}`;
+        });
 
-            help.textContent = `Min12: ${len} | Upper: ${upper} | Lower: ${lower} | Num: ${digit} | Special: ${special}`;
+        // reCAPTCHA v3 on submit
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            grecaptcha.ready(function () {
+                grecaptcha.execute("@Config["Recaptcha:SiteKey"]", { action: "register" })
+                    .then(function (token) {
+                        document.getElementById("recaptchaToken").value = token;
+                        form.submit();
+                    });
+            });
         });
     </script>
+
 }
