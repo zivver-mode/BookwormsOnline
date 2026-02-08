@@ -1,0 +1,16 @@
+﻿@page
+@model BookwormsOnline.Pages.Enable2FAModel
+@{
+    ViewData["Title"] = "Enable 2FA";
+}
+
+<h2>Enable 2FA (Email OTP)</h2>
+
+<form method="post">
+    <button class="btn btn-primary" type="submit">Enable 2FA</button>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-info mt-3">@Model.Message</div>
+}

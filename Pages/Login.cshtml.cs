@@ -79,6 +79,12 @@ namespace BookwormsOnline.Pages
                 return RedirectToPage("/Index");
             }
 
+            if (result.RequiresTwoFactor)
+            {
+                return RedirectToPage("/Login2FA", new { email = Input.Email, rememberMe = Input.RememberMe });
+            }
+
+
             if (result.IsLockedOut)
             {
                 await LogAsync(user.Id, user.Email, "LOGIN", false, "Locked out");
