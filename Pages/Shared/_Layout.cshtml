@@ -30,6 +30,7 @@
                     {
                         <li class="nav-item"><a class="nav-link" asp-page="/Enable2FA">2FA</a></li>
                         <li class="nav-item"><a class="nav-link" href="/Admin">Admin</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-page="/ChangePassword">Change Password</a></li>
                     }
                 </ul>
 
@@ -40,9 +41,6 @@
                             <span class="navbar-text bw-nav-user">
                                 Hello, @User.Identity?.Name
                             </span>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn btn-outline-light btn-sm" href="/Logout">Logout</a>
                         </li>
                     }
                 </ul>

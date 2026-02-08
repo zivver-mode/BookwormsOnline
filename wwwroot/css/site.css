@@ -1,4 +1,4 @@
-.bw-body {
+﻿.bw-body {
     background: #0b1220;
     color: #e9eef7;
     min-height: 100vh;
@@ -83,3 +83,44 @@ p, span, div {
     color: rgba(255, 255, 255, 0.7) !important;
 }
 
+/* ===== 2FA QR code styling ===== */
+.qr-box {
+    background: #ffffff;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    display: inline-block;
+}
+
+.qr-img {
+    width: 180px; /* ← THIS controls size */
+    height: 180px;
+    object-fit: contain;
+}
+
+/* ===== Error pages ===== */
+.error-page {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.error-code {
+    font-size: 7rem;
+    font-weight: 700;
+    letter-spacing: 0.1rem;
+    color: #ffffff;
+}
+
+.error-message {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 0.5rem;
+}
+
+.error-sub {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 1.75rem;
+}

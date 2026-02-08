@@ -1,7 +1,18 @@
 ﻿@page
 @{
-    ViewData["Title"] = "Not Found";
+    ViewData["Title"] = "Page Not Found";
 }
-<h2>404 - Page Not Found</h2>
-<p>The page you requested doesn’t exist.</p>
-<p><a href="/Index">Home</a></p>
+
+<div class="error-page">
+    <div>
+        <div class="error-code">404</div>
+        <div class="error-message">Oops, this page can’t be found.</div>
+        <div class="error-sub">
+            The page you’re looking for may have been removed or is temporarily unavailable.
+        </div>
+
+        <a class="btn btn-primary px-4" asp-page="/Index">
+            Go back home
+        </a>
+    </div>
+</div>

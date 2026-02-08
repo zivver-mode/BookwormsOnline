@@ -2,6 +2,17 @@
 @{
     ViewData["Title"] = "Server Error";
 }
-<h2>500 - Server Error</h2>
-<p>Something went wrong on our side.</p>
-<p><a href="/Index">Home</a></p>
+
+<div class="error-page">
+    <div>
+        <div class="error-code">500</div>
+        <div class="error-message">Something went wrong.</div>
+        <div class="error-sub">
+            An unexpected error occurred. Please try again later.
+        </div>
+
+        <a class="btn btn-primary px-4" asp-page="/Index">
+            Go back home
+        </a>
+    </div>
+</div>

@@ -61,7 +61,8 @@ builder.Services.Configure<FormOptions>(o =>
 {
     o.MultipartBodyLengthLimit = 2 * 1024 * 1024; // 2MB
 });
-builder.Services.AddScoped<IEmailSender, DevEmailSender>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
 
 var app = builder.Build();
 

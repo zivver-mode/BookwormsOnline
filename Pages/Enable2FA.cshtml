@@ -5,11 +5,13 @@
 }
 
 <div class="row justify-content-center">
-    <div class="col-12 col-md-9 col-lg-7">
-        <div class="card bw-card shadow-lg">
+    <div class="col-12 col-md-10 col-lg-8">
+        <div class="card bw-card shadow-lg text-center">
             <div class="card-header p-4">
                 <h3 class="mb-1">Two-Factor Authentication</h3>
-                <p class="mb-0 text-muted">Use Microsoft Authenticator for better account security.</p>
+                <p class="mb-0 text-muted">
+                    Use Microsoft Authenticator for better account security.
+                </p>
             </div>
 
             <div class="card-body p-4">
@@ -36,8 +38,10 @@
 
                     <div class="mb-3">
                         <div class="text-muted small mb-2">1) Scan this QR code in Microsoft Authenticator</div>
-                        <div class="p-3 rounded" style="background: rgba(255,255,255,.06); display:inline-block;">
-                            <img alt="QR Code" src="@Model.QrCodeImageUrl" />
+                        <div class="d-flex justify-content-center my-3">
+                            <div class="qr-box">
+                                <img alt="QR Code" src="@Model.QrCodeImageUrl" class="qr-img" />
+                            </div>
                         </div>
                     </div>
 

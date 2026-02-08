@@ -29,18 +29,30 @@ namespace BookwormsOnline.Pages
         {
             if (!ModelState.IsValid) return Page();
 
-            // Prevent account enumeration
+            // Default message (prevents enumeration)
             Message = "If the email is registered, a reset link will be sent.";
 
             var user = await _userManager.FindByEmailAsync(Email);
-            if (user == null) return Page();
+            if (user == null)
+            {
+                // Keep same message (no enumeration)
+                return Page();
+            }
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             var link = Url.Page("/ResetPassword", null, new { email = Email, token }, Request.Scheme);
 
-            await _emailSender.SendAsync(Email, "Bookworms Password Reset", $"Reset link: {link}");
+            await _emailSender.SendAsync(
+                Email,
+                "Bookworms Password Reset",
+                $"Reset your password using this link:\n{link}"
+            );
+
+            // Optional: more user-friendly while still safe
+            Message = "If your email is registered, a reset link has been generated. Please check your inbox.";
 
             return Page();
         }
+
     }
 }

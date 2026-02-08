@@ -1,7 +1,18 @@
 ﻿@page
 @{
-    ViewData["Title"] = "Forbidden";
+    ViewData["Title"] = "Access Denied";
 }
-<h2>403 - Forbidden</h2>
-<p>You are not allowed to access this resource.</p>
-<p><a href="/Login">Login</a> | <a href="/Index">Home</a></p>
+
+<div class="error-page">
+    <div>
+        <div class="error-code">403</div>
+        <div class="error-message">Access denied.</div>
+        <div class="error-sub">
+            You don’t have permission to access this page.
+        </div>
+
+        <a class="btn btn-primary px-4" asp-page="/Index">
+            Go back home
+        </a>
+    </div>
+</div>
