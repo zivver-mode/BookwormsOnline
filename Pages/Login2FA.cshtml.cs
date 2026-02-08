@@ -71,11 +71,26 @@ namespace BookwormsOnline.Pages
 
             if (result.Succeeded)
             {
-                // IMPORTANT: set session token for single-session middleware
+                var freshUser = await _userManager.FindByIdAsync(user.Id);
+                if (freshUser == null) return RedirectToPage("/Login");
+
                 var token = Guid.NewGuid().ToString("N");
-                user.ActiveSessionToken = token;
-                await _userManager.UpdateAsync(user);
+                freshUser.ActiveSessionToken = token;
+
+                try
+                {
+                    await _userManager.UpdateAsync(freshUser);
+                }
+                catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+                {
+                    freshUser = await _userManager.FindByIdAsync(user.Id);
+                    if (freshUser == null) return RedirectToPage("/Login");
+                    freshUser.ActiveSessionToken = token;
+                    await _userManager.UpdateAsync(freshUser);
+                }
+
                 HttpContext.Session.SetString("SessionToken", token);
+
 
                 _db.AuditLogs.Add(new AuditLog
                 {

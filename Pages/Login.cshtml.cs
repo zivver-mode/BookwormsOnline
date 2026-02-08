@@ -66,18 +66,43 @@ namespace BookwormsOnline.Pages
 
             if (result.Succeeded)
             {
-                // Create new session token for “multiple login detection”
-                var token = Guid.NewGuid().ToString("N");
-                user.ActiveSessionToken = token;
+                // Re-load user AFTER sign-in to avoid ConcurrencyStamp mismatch
+                var freshUser = await _userManager.FindByIdAsync(user.Id);
+                if (freshUser == null)
+                {
+                    await LogAsync(null, Input.Email, "LOGIN", false, "User missing after sign-in");
+                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    return Page();
+                }
 
-                await _userManager.UpdateAsync(user);
+                var token = Guid.NewGuid().ToString("N");
+                freshUser.ActiveSessionToken = token;
+
+                try
+                {
+                    await _userManager.UpdateAsync(freshUser);
+                }
+                catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+                {
+                    // One retry (handles rare double-update timing)
+                    freshUser = await _userManager.FindByIdAsync(user.Id);
+                    if (freshUser == null)
+                    {
+                        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                        return Page();
+                    }
+
+                    freshUser.ActiveSessionToken = token;
+                    await _userManager.UpdateAsync(freshUser);
+                }
 
                 HttpContext.Session.SetString("SessionToken", token);
 
-                await LogAsync(user.Id, user.Email, "LOGIN", true, "Success");
+                await LogAsync(freshUser.Id, freshUser.Email, "LOGIN", true, "Success");
 
                 return RedirectToPage("/Index");
             }
+
 
             if (result.RequiresTwoFactor)
             {

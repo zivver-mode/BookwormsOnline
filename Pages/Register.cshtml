@@ -5,89 +5,112 @@
     ViewData["Title"] = "Register";
 }
 
-<h2>Register</h2>
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-9 col-xl-8">
+        <div class="card bw-card shadow-lg">
+            <div class="card-header p-4">
+                <h3 class="mb-1">Create your Bookworms account</h3>
+                <p class="mb-0 text-muted">Secure registration with JPG-only upload, encryption, and reCAPTCHA.</p>
+            </div>
 
-<form method="post" enctype="multipart/form-data">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
 
-    <div class="mb-2">
-        <label asp-for="Input.FirstName"></label>
-        <input asp-for="Input.FirstName" class="form-control" />
-        <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Input.FirstName" class="form-label"></label>
+                            <input asp-for="Input.FirstName" class="form-control" placeholder="e.g., John" />
+                            <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Input.LastName" class="form-label"></label>
+                            <input asp-for="Input.LastName" class="form-control" placeholder="e.g., Tan" />
+                            <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Input.Email" class="form-label"></label>
+                            <input asp-for="Input.Email" class="form-control" placeholder="name@example.com" />
+                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Input.MobileNo" class="form-label"></label>
+                            <input asp-for="Input.MobileNo" class="form-control" placeholder="8-digit mobile" />
+                            <span asp-validation-for="Input.MobileNo" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Input.BillingAddress" class="form-label"></label>
+                            <input asp-for="Input.BillingAddress" class="form-control" placeholder="Billing address" />
+                            <span asp-validation-for="Input.BillingAddress" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Input.ShippingAddress" class="form-label"></label>
+                            <input asp-for="Input.ShippingAddress" class="form-control" placeholder="Shipping address (special characters allowed)" />
+                            <span asp-validation-for="Input.ShippingAddress" class="text-danger small"></span>
+                            <div class="form-text">We allow special characters. Output is safely encoded by Razor.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Input.CreditCard" class="form-label"></label>
+                            <input asp-for="Input.CreditCard" class="form-control" inputmode="numeric" placeholder="12–19 digits" />
+                            <span asp-validation-for="Input.CreditCard" class="text-danger small"></span>
+                            <div class="form-text">Stored encrypted in the database.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Input.Photo" class="form-label">Profile Photo (JPG only)</label>
+                            <input asp-for="Input.Photo" type="file" class="form-control" accept=".jpg,.jpeg,image/jpeg" />
+                            <span asp-validation-for="Input.Photo" class="text-danger small"></span>
+                            <div class="form-text">Max size enforced server-side.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Input.Password" class="form-label"></label>
+                            <input asp-for="Input.Password" class="form-control" id="pw" placeholder="Strong password" />
+                            <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                            <div id="pwHelp" class="form-text"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Input.ConfirmPassword" class="form-label"></label>
+                            <input asp-for="Input.ConfirmPassword" class="form-control" placeholder="Repeat password" />
+                            <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- reCAPTCHA v3 token -->
+                    <input type="hidden" asp-for="Input.RecaptchaToken" id="recaptchaToken" />
+                    <span asp-validation-for="Input.RecaptchaToken" class="text-danger small"></span>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary px-4">Create Account</button>
+                        <a class="btn btn-outline-light" asp-page="/Login">I already have an account</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <p class="text-muted small mt-3 mb-0">
+            Protected by Google reCAPTCHA v3.
+        </p>
     </div>
-
-    <div class="mb-2">
-        <label asp-for="Input.LastName"></label>
-        <input asp-for="Input.LastName" class="form-control" />
-        <span asp-validation-for="Input.LastName" class="text-danger"></span>
-    </div>
-
-    <div class="mb-2">
-        <label asp-for="Input.Email"></label>
-        <input asp-for="Input.Email" class="form-control" />
-        <span asp-validation-for="Input.Email" class="text-danger"></span>
-    </div>
-
-    <div class="mb-2">
-        <label asp-for="Input.MobileNo"></label>
-        <input asp-for="Input.MobileNo" class="form-control" />
-        <span asp-validation-for="Input.MobileNo" class="text-danger"></span>
-    </div>
-
-    <div class="mb-2">
-        <label asp-for="Input.BillingAddress"></label>
-        <input asp-for="Input.BillingAddress" class="form-control" />
-        <span asp-validation-for="Input.BillingAddress" class="text-danger"></span>
-    </div>
-
-    <div class="mb-2">
-        <label asp-for="Input.ShippingAddress"></label>
-        <input asp-for="Input.ShippingAddress" class="form-control" />
-        <span asp-validation-for="Input.ShippingAddress" class="text-danger"></span>
-        <small class="form-text text-muted">Special characters are allowed.</small>
-    </div>
-
-    <div class="mb-2">
-        <label asp-for="Input.CreditCard"></label>
-        <input asp-for="Input.CreditCard" class="form-control" />
-        <span asp-validation-for="Input.CreditCard" class="text-danger"></span>
-    </div>
-
-    <div class="mb-2">
-        <label asp-for="Input.Password"></label>
-        <input asp-for="Input.Password" class="form-control" id="pw" />
-        <span asp-validation-for="Input.Password" class="text-danger"></span>
-        <small id="pwHelp" class="form-text"></small>
-    </div>
-
-    <div class="mb-2">
-        <label asp-for="Input.ConfirmPassword"></label>
-        <input asp-for="Input.ConfirmPassword" class="form-control" />
-        <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Input.Photo">Photo (JPG only)</label>
-        <input asp-for="Input.Photo" type="file" class="form-control" accept=".jpg,.jpeg,image/jpeg" />
-        <span asp-validation-for="Input.Photo" class="text-danger"></span>
-    </div>
-
-    <!-- reCAPTCHA v3 token -->
-    <input type="hidden" asp-for="Input.RecaptchaToken" id="recaptchaToken" />
-    <span asp-validation-for="Input.RecaptchaToken" class="text-danger"></span>
-
-    <button type="submit" class="btn btn-primary">Register</button>
-</form>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
     <script src="https://www.google.com/recaptcha/api.js?render=@Config["Recaptcha:SiteKey"]"></script>
+
     <script>
         const pw = document.getElementById("pw");
         const help = document.getElementById("pwHelp");
         const form = document.querySelector("form");
 
-        // Password strength feedback
         pw.addEventListener("input", () => {
             const p = pw.value;
             const len = p.length >= 12;
@@ -95,14 +118,11 @@
             const lower = /[a-z]/.test(p);
             const digit = /\d/.test(p);
             const special = /[^A-Za-z0-9]/.test(p);
-            help.textContent =
-                `Min12: ${len} | Upper: ${upper} | Lower: ${lower} | Num: ${digit} | Special: ${special}`;
+            help.textContent = `Min12: ${len} | Upper: ${upper} | Lower: ${lower} | Num: ${digit} | Special: ${special}`;
         });
 
-        // reCAPTCHA v3 on submit
         form.addEventListener("submit", function (e) {
             e.preventDefault();
-
             grecaptcha.ready(function () {
                 grecaptcha.execute("@Config["Recaptcha:SiteKey"]", { action: "register" })
                     .then(function (token) {
@@ -112,5 +132,4 @@
             });
         });
     </script>
-
 }
