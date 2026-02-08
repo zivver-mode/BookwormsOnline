@@ -2,6 +2,7 @@ using BookwormsOnline.Data;
 using BookwormsOnline.Middleware;
 using BookwormsOnline.Models;
 using BookwormsOnline.Services;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,8 @@ builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(5);
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
@@ -54,6 +57,10 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<AesEncryptionService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<RecaptchaService>();
+builder.Services.Configure<FormOptions>(o =>
+{
+    o.MultipartBodyLengthLimit = 2 * 1024 * 1024; // 2MB
+});
 
 var app = builder.Build();
 

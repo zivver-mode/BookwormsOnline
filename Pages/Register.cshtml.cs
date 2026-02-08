@@ -45,8 +45,10 @@ namespace BookwormsOnline.Pages
             [Required, EmailAddress]
             public string Email { get; set; } = "";
 
-            [Required, MaxLength(20)]
+            [Required]
+            [RegularExpression(@"^[689]\d{7}$", ErrorMessage = "Mobile must be 8 digits and start with 6, 8, or 9.")]
             public string MobileNo { get; set; } = "";
+
 
             [Required, MaxLength(200)]
             public string BillingAddress { get; set; } = "";
@@ -165,6 +167,9 @@ namespace BookwormsOnline.Pages
 
         private static bool IsJpeg(IFormFile file)
         {
+            if (file == null || file.Length == 0) return false;
+            if (file.Length > 2_000_000) return false; // 2MB
+
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (ext != ".jpg" && ext != ".jpeg") return false;
 
