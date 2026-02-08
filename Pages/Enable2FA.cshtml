@@ -1,16 +1,69 @@
 ﻿@page
 @model BookwormsOnline.Pages.Enable2FAModel
 @{
-    ViewData["Title"] = "Enable 2FA";
+    ViewData["Title"] = "Two-Factor Authentication";
 }
 
-<h2>Enable 2FA (Email OTP)</h2>
+<div class="row justify-content-center">
+    <div class="col-12 col-md-9 col-lg-7">
+        <div class="card bw-card shadow-lg">
+            <div class="card-header p-4">
+                <h3 class="mb-1">Two-Factor Authentication</h3>
+                <p class="mb-0 text-muted">Use Microsoft Authenticator for better account security.</p>
+            </div>
 
-<form method="post">
-    <button class="btn btn-primary" type="submit">Enable 2FA</button>
-</form>
+            <div class="card-body p-4">
+                @if (!string.IsNullOrEmpty(Model.Message))
+                {
+                    <div class="alert alert-info">@Model.Message</div>
+                }
 
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    <div class="alert alert-info mt-3">@Model.Message</div>
+                @if (Model.IsEnabled)
+                {
+                    <div class="alert alert-success">
+                        <strong>Enabled.</strong> Your account is protected with an authenticator app.
+                    </div>
+
+                    <form method="post" asp-page-handler="Disable">
+                        <button class="btn btn-outline-light w-100" type="submit">Disable 2FA</button>
+                    </form>
+                }
+                else
+                {
+                    <div class="alert alert-warning">
+                        <strong>Not enabled.</strong> Scan the QR code using Microsoft Authenticator, then verify.
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="text-muted small mb-2">1) Scan this QR code in Microsoft Authenticator</div>
+                        <div class="p-3 rounded" style="background: rgba(255,255,255,.06); display:inline-block;">
+                            <img alt="QR Code" src="@Model.QrCodeImageUrl" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="text-muted small">2) Or enter this setup key manually</div>
+                        <div class="fw-semibold">@Model.SharedKey</div>
+                    </div>
+
+                    <form method="post" asp-page-handler="Enable">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+                        <div class="mb-3">
+                            <label class="form-label" asp-for="VerificationCode">Verification Code</label>
+                            <input class="form-control" asp-for="VerificationCode" placeholder="6-digit code" />
+                            <span asp-validation-for="VerificationCode" class="text-danger small"></span>
+                            <div class="form-text">Enter the 6-digit code from Microsoft Authenticator.</div>
+                        </div>
+
+                        <button class="btn btn-primary w-100" type="submit">Enable 2FA</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
 }

@@ -64,7 +64,7 @@ namespace BookwormsOnline.Pages
             if (user == null) return RedirectToPage("/Login");
 
             var result = await _signInManager.TwoFactorSignInAsync(
-                TokenOptions.DefaultEmailProvider,
+                _signInManager.Options.Tokens.AuthenticatorTokenProvider,
                 Input.Code,
                 Input.RememberMe,
                 rememberClient: false);
