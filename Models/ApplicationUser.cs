@@ -32,5 +32,7 @@ namespace BookwormsOnline.Models
         // Used to detect multiple logins (single active session)
         [MaxLength(100)]
         public string? ActiveSessionToken { get; set; }
+        public DateTime PasswordLastChangedUtc { get; set; } = DateTime.UtcNow;
+
     }
 }

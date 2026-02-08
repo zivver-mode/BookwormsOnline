@@ -9,5 +9,7 @@ namespace BookwormsOnline.Data
         public AuthDbContext(DbContextOptions<AuthDbContext> options) : base(options) { }
 
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
+
     }
 }
