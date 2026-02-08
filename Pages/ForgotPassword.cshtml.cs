@@ -29,7 +29,7 @@ namespace BookwormsOnline.Pages
         {
             if (!ModelState.IsValid) return Page();
 
-            // Always return generic message (prevents account enumeration)
+            // Prevent account enumeration
             Message = "If the email is registered, a reset link will be sent.";
 
             var user = await _userManager.FindByEmailAsync(Email);

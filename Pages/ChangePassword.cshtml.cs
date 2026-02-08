@@ -53,7 +53,7 @@ namespace BookwormsOnline.Pages
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return RedirectToPage("/Login");
 
-            // Min age
+            // Minimum password age
             var minMinutes = int.TryParse(_config["PasswordPolicy:MinChangeMinutes"], out var m) ? m : 5;
             if (DateTime.UtcNow - user.PasswordLastChangedUtc < TimeSpan.FromMinutes(minMinutes))
             {
@@ -61,14 +61,14 @@ namespace BookwormsOnline.Pages
                 return Page();
             }
 
-            // Password history check (last N hashes)
+            // Password history check (last N)
             var historyCount = int.TryParse(_config["PasswordPolicy:HistoryCount"], out var h) ? h : 2;
 
             var recentHashes = await _db.PasswordHistories
                 .Where(x => x.UserId == user.Id)
                 .OrderByDescending(x => x.CreatedAtUtc)
-                .Take(historyCount)
                 .Select(x => x.PasswordHash)
+                .Take(historyCount)
                 .ToListAsync();
 
             foreach (var oldHash in recentHashes)
@@ -81,7 +81,7 @@ namespace BookwormsOnline.Pages
                 }
             }
 
-            // Change password
+            // Change password (Identity will validate complexity based on options)
             var result = await _userManager.ChangePasswordAsync(user, Input.CurrentPassword, Input.NewPassword);
             if (!result.Succeeded)
             {
@@ -90,16 +90,41 @@ namespace BookwormsOnline.Pages
                 return Page();
             }
 
-            // Store old password hash into history
-            _db.PasswordHistories.Add(new PasswordHistory
+            // Store the NEW hash into history (keep it for future checks)
+            if (!string.IsNullOrEmpty(user.PasswordHash))
             {
-                UserId = user.Id,
-                PasswordHash = user.PasswordHash ?? ""
-            });
+                _db.PasswordHistories.Add(new PasswordHistory
+                {
+                    UserId = user.Id,
+                    PasswordHash = user.PasswordHash,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+            }
 
-            // Update last changed
+            // Trim to last N
+            var all = await _db.PasswordHistories
+                .Where(x => x.UserId == user.Id)
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .ToListAsync();
+
+            if (all.Count > historyCount)
+            {
+                var toRemove = all.Skip(historyCount);
+                _db.PasswordHistories.RemoveRange(toRemove);
+            }
+
             user.PasswordLastChangedUtc = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
+
+            _db.AuditLogs.Add(new AuditLog
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                Action = "CHANGE_PASSWORD",
+                Success = true,
+                Details = "Password changed successfully",
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+            });
 
             await _db.SaveChangesAsync();
 

@@ -50,20 +50,15 @@ namespace BookwormsOnline.Pages
             if (!ModelState.IsValid) return Page();
 
             var user = await _userManager.FindByEmailAsync(Input.Email);
-            if (user == null)
-            {
-                // generic
-                return RedirectToPage("/Login");
-            }
+            if (user == null) return RedirectToPage("/Login");
 
-            // History check (last N)
             var historyCount = int.TryParse(_config["PasswordPolicy:HistoryCount"], out var h) ? h : 2;
 
             var recentHashes = await _db.PasswordHistories
                 .Where(x => x.UserId == user.Id)
                 .OrderByDescending(x => x.CreatedAtUtc)
-                .Take(historyCount)
                 .Select(x => x.PasswordHash)
+                .Take(historyCount)
                 .ToListAsync();
 
             foreach (var oldHash in recentHashes)
@@ -76,16 +71,6 @@ namespace BookwormsOnline.Pages
                 }
             }
 
-            // Store current hash into history before reset (if present)
-            if (!string.IsNullOrEmpty(user.PasswordHash))
-            {
-                _db.PasswordHistories.Add(new PasswordHistory
-                {
-                    UserId = user.Id,
-                    PasswordHash = user.PasswordHash
-                });
-            }
-
             var result = await _userManager.ResetPasswordAsync(user, Input.Token, Input.NewPassword);
             if (!result.Succeeded)
             {
@@ -94,8 +79,41 @@ namespace BookwormsOnline.Pages
                 return Page();
             }
 
+            // Store new hash after reset
+            if (!string.IsNullOrEmpty(user.PasswordHash))
+            {
+                _db.PasswordHistories.Add(new PasswordHistory
+                {
+                    UserId = user.Id,
+                    PasswordHash = user.PasswordHash,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+            }
+
+            // Trim to last N
+            var all = await _db.PasswordHistories
+                .Where(x => x.UserId == user.Id)
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .ToListAsync();
+
+            if (all.Count > historyCount)
+            {
+                var toRemove = all.Skip(historyCount);
+                _db.PasswordHistories.RemoveRange(toRemove);
+            }
+
             user.PasswordLastChangedUtc = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
+
+            _db.AuditLogs.Add(new AuditLog
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                Action = "RESET_PASSWORD",
+                Success = true,
+                Details = "Password reset successfully",
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+            });
 
             await _db.SaveChangesAsync();
 

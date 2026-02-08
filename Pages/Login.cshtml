@@ -1,15 +1,15 @@
 ﻿@page
 @model BookwormsOnline.Pages.LoginModel
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = "Sign In";
 }
 
 <div class="row justify-content-center">
     <div class="col-12 col-md-8 col-lg-5">
         <div class="card bw-card shadow-lg">
             <div class="card-header p-4">
-                <h3 class="mb-1">Welcome back</h3>
-                <p class="mb-0 text-muted">Sign in to your Bookworms account.</p>
+                <h3 class="mb-1">Sign in to Bookworms</h3>
+                <p class="mb-0 text-muted">Access your account securely using your email and password.</p>
             </div>
 
             <div class="card-body p-4">
@@ -23,24 +23,30 @@
 
                     <div class="mb-3">
                         <label asp-for="Input.Email" class="form-label"></label>
-                        <input asp-for="Input.Email" class="form-control" placeholder="name@example.com" />
+                        <input asp-for="Input.Email" class="form-control" placeholder="name@example.com" autocomplete="username" />
                         <span asp-validation-for="Input.Email" class="text-danger small"></span>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-2">
                         <label asp-for="Input.Password" class="form-label"></label>
-                        <input asp-for="Input.Password" class="form-control" placeholder="Your password" />
+                        <input asp-for="Input.Password" class="form-control" placeholder="Your password" autocomplete="current-password" />
                         <span asp-validation-for="Input.Password" class="text-danger small"></span>
                     </div>
 
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" asp-for="Input.RememberMe" />
-                        <label class="form-check-label" asp-for="Input.RememberMe"></label>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" asp-for="Input.RememberMe" />
+                            <label class="form-check-label" asp-for="Input.RememberMe">
+                                Remember this device
+                            </label>
+                        </div>
+
+                        <a class="link-light small" asp-page="/ForgotPassword">Forgot password?</a>
                     </div>
 
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">Login</button>
-                        <a class="btn btn-outline-light" asp-page="/Register">Create account</a>
+                        <button type="submit" class="btn btn-primary">Sign In</button>
+                        <a class="btn btn-outline-light" asp-page="/Register">Create a new account</a>
                     </div>
                 </form>
             </div>
