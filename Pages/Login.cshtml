@@ -1,4 +1,5 @@
 ﻿@page
+@inject IConfiguration Config
 @model BookwormsOnline.Pages.LoginModel
 @{
     ViewData["Title"] = "Sign In";
@@ -13,34 +14,41 @@
             </div>
 
             <div class="card-body p-4">
+                @* Yellow info/warning banner (session expired, signed in elsewhere, etc.) *@
                 @if (!string.IsNullOrEmpty(Model.Message))
                 {
                     <div class="alert alert-warning">@Model.Message</div>
                 }
 
-                <form method="post">
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+                @* Red policy/business error banner (invalid login, locked out, etc.) *@
+                @if (!string.IsNullOrEmpty(Model.PolicyError))
+                {
+                    <div class="alert alert-danger py-2" role="alert">@Model.PolicyError</div>
+                }
 
+                <form method="post" id="loginForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Input.RecaptchaToken" id="recaptchaToken" />
                     <div class="mb-3">
                         <label asp-for="Input.Email" class="form-label"></label>
-                        <input asp-for="Input.Email" class="form-control" placeholder="name@example.com" autocomplete="username" />
+                        <input asp-for="Input.Email"
+                               class="form-control"
+                               placeholder="name@example.com"
+                               autocomplete="username" />
                         <span asp-validation-for="Input.Email" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-2">
                         <label asp-for="Input.Password" class="form-label"></label>
-                        <input asp-for="Input.Password" class="form-control" placeholder="Your password" autocomplete="current-password" />
+                        <input asp-for="Input.Password"
+                               type="password"
+                               class="form-control"
+                               placeholder="Your password"
+                               autocomplete="current-password" />
                         <span asp-validation-for="Input.Password" class="text-danger small"></span>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" asp-for="Input.RememberMe" />
-                            <label class="form-check-label" asp-for="Input.RememberMe">
-                                Remember this device
-                            </label>
-                        </div>
-
                         <a class="link-light small" asp-page="/ForgotPassword">Forgot password?</a>
                     </div>
 
@@ -56,4 +64,25 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script src="https://www.google.com/recaptcha/api.js?render=@Config["Recaptcha:SiteKey"]"></script>
+
+    <script>
+        const form = document.getElementById("loginForm");
+
+        form.addEventListener("submit", function (e) {
+            // If grecaptcha didn't load, let server-side handle it (will fail verification)
+            if (typeof grecaptcha === "undefined") return;
+
+            e.preventDefault();
+            grecaptcha.ready(function () {
+                grecaptcha.execute('@Config["Recaptcha:SiteKey"]', { action: 'login' })
+                    .then(function (token) {
+                        document.getElementById("recaptchaToken").value = token;
+                        form.submit();
+                    });
+            });
+        });
+    </script>
 }
+

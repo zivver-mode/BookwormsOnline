@@ -1,4 +1,4 @@
-using BookwormsOnline.Data;
+﻿using BookwormsOnline.Data;
 using BookwormsOnline.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -22,28 +22,54 @@ namespace BookwormsOnline.Pages
             _db = db;
             _config = config;
         }
+        [TempData]
+        public string? SuccessMessage { get; set; }
+        public string? PolicyError { get; set; }
+
+
 
         [BindProperty]
         public InputModel Input { get; set; } = new();
 
-        public string? Message { get; set; }
-
         public class InputModel
         {
-            [Required, DataType(DataType.Password)]
+            [Required(ErrorMessage = "Current password is required.")]
+            [DataType(DataType.Password)]
+            [Display(Name = "Current password")]
             public string CurrentPassword { get; set; } = "";
 
-            [Required, DataType(DataType.Password), MinLength(12)]
+            [Required(ErrorMessage = "New password is required.")]
+            [DataType(DataType.Password)]
+            [MinLength(12, ErrorMessage = "New password must be at least 12 characters.")]
+            [Display(Name = "New password")]
             public string NewPassword { get; set; } = "";
 
-            [Required, DataType(DataType.Password), Compare(nameof(NewPassword))]
+            [Required(ErrorMessage = "Please confirm your new password.")]
+            [DataType(DataType.Password)]
+            [Display(Name = "Confirm new password")]
+            [Compare(nameof(NewPassword), ErrorMessage = "New password and confirmation do not match.")]
             public string ConfirmNewPassword { get; set; } = "";
+        }
+
+        private static string NormalizeIdentityError(IdentityError e)
+        {
+            return e.Code switch
+            {
+                "PasswordTooShort" => "New password must be at least 12 characters long.",
+                "PasswordRequiresUpper" => "New password must contain at least one uppercase letter.",
+                "PasswordRequiresLower" => "New password must contain at least one lowercase letter.",
+                "PasswordRequiresDigit" => "New password must contain at least one number.",
+                "PasswordRequiresNonAlphanumeric" => "New password must contain at least one special character.",
+                _ => e.Description
+            };
         }
 
         public void OnGet(string? reason = null)
         {
             if (reason == "expired")
-                Message = "Your password has expired. Please change it to continue.";
+            {
+                PolicyError = "Your password has expired. Please change it to continue.";
+            }
         }
 
         public async Task<IActionResult> OnPostAsync()
@@ -57,7 +83,8 @@ namespace BookwormsOnline.Pages
             var minMinutes = int.TryParse(_config["PasswordPolicy:MinChangeMinutes"], out var m) ? m : 5;
             if (DateTime.UtcNow - user.PasswordLastChangedUtc < TimeSpan.FromMinutes(minMinutes))
             {
-                ModelState.AddModelError(string.Empty, $"You can change your password again after {minMinutes} minutes.");
+                PolicyError = $"You can change your password again after {minMinutes} minutes.";
+                ClearPasswordInputs();
                 return Page();
             }
 
@@ -71,35 +98,65 @@ namespace BookwormsOnline.Pages
                 .Take(historyCount)
                 .ToListAsync();
 
+            // Also check against CURRENT password hash
+            if (!string.IsNullOrEmpty(user.PasswordHash))
+            {
+                var sameAsCurrent = _userManager.PasswordHasher.VerifyHashedPassword(user, user.PasswordHash, Input.NewPassword);
+                if (sameAsCurrent == PasswordVerificationResult.Success)
+                {
+                    PolicyError = "New password must be different from your current password.";
+
+                    ClearPasswordInputs();
+                    return Page();
+                }
+            }
+            // Check against last N historical hashes (your existing logic, unchanged)
             foreach (var oldHash in recentHashes)
             {
                 var verify = _userManager.PasswordHasher.VerifyHashedPassword(user, oldHash, Input.NewPassword);
                 if (verify == PasswordVerificationResult.Success)
                 {
-                    ModelState.AddModelError(string.Empty, $"New password cannot match your last {historyCount} passwords.");
+                    PolicyError = $"New password cannot match your last {historyCount} passwords.";
+
+                    ClearPasswordInputs();
                     return Page();
                 }
             }
 
-            // Change password (Identity will validate complexity based on options)
+            var oldHashBeforeChange = user.PasswordHash;
+
+            // Change password (Identity validates complexity)
             var result = await _userManager.ChangePasswordAsync(user, Input.CurrentPassword, Input.NewPassword);
             if (!result.Succeeded)
             {
                 foreach (var e in result.Errors)
-                    ModelState.AddModelError(string.Empty, e.Description);
+                {
+                    if (e.Code == "PasswordMismatch")
+                    {
+                        ModelState.AddModelError("Input.CurrentPassword", "Current password is incorrect.");
+                    }
+                    else
+                    {
+                        // other errors -> summary box
+                        ModelState.AddModelError(string.Empty, NormalizeIdentityError(e));
+                    }
+                }
+
+                ClearPasswordInputs();
                 return Page();
             }
 
-            // Store the NEW hash into history (keep it for future checks)
-            if (!string.IsNullOrEmpty(user.PasswordHash))
+            // Store the OLD hash into history (prevents re-using it later)
+            if (!string.IsNullOrEmpty(oldHashBeforeChange))
             {
                 _db.PasswordHistories.Add(new PasswordHistory
                 {
                     UserId = user.Id,
-                    PasswordHash = user.PasswordHash,
+                    PasswordHash = oldHashBeforeChange,
                     CreatedAtUtc = DateTime.UtcNow
                 });
             }
+
 
             // Trim to last N
             var all = await _db.PasswordHistories
@@ -113,8 +170,25 @@ namespace BookwormsOnline.Pages
                 _db.PasswordHistories.RemoveRange(toRemove);
             }
 
-            user.PasswordLastChangedUtc = DateTime.UtcNow;
-            await _userManager.UpdateAsync(user);
+            // Re-load user AFTER ChangePasswordAsync to avoid ConcurrencyStamp mismatch
+            var freshUser = await _userManager.FindByIdAsync(user.Id);
+            if (freshUser == null) return RedirectToPage("/Login");
+
+            freshUser.PasswordLastChangedUtc = DateTime.UtcNow;
+
+            try
+            {
+                await _userManager.UpdateAsync(freshUser);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+            {
+                // One retry (handles rare timing/double-update)
+                freshUser = await _userManager.FindByIdAsync(user.Id);
+                if (freshUser == null) return RedirectToPage("/Login");
+
+                freshUser.PasswordLastChangedUtc = DateTime.UtcNow;
+                await _userManager.UpdateAsync(freshUser);
+            }
 
             _db.AuditLogs.Add(new AuditLog
             {
@@ -127,8 +201,18 @@ namespace BookwormsOnline.Pages
             });
 
             await _db.SaveChangesAsync();
-
+            SuccessMessage = "Password updated successfully.";
             return RedirectToPage("/Index");
+
+        }
+
+        private void ClearPasswordInputs()
+        {
+            // You can't reliably preserve password inputs after POST (browser security),
+            // so we intentionally clear them for consistency.
+            Input.CurrentPassword = "";
+            Input.NewPassword = "";
+            Input.ConfirmNewPassword = "";
         }
     }
 }

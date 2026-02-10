@@ -1,5 +1,6 @@
 using BookwormsOnline.Data;
 using BookwormsOnline.Models;
+using BookwormsOnline.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,31 +13,44 @@ namespace BookwormsOnline.Pages
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly AuthDbContext _db;
+        private readonly RecaptchaService _recaptcha;
 
         public LoginModel(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
-            AuthDbContext db)
+            AuthDbContext db,
+            RecaptchaService recaptcha)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _db = db;
+            _recaptcha = recaptcha;
         }
 
         [BindProperty]
         public InputModel Input { get; set; } = new();
 
+        // Yellow info/warning message (session expired etc.)
         public string? Message { get; set; }
+
+        // Red policy/business error message (invalid login / locked out etc.)
+        public string? PolicyError { get; set; }
 
         public class InputModel
         {
-            [Required, EmailAddress]
+            [Required(ErrorMessage = "Email is required.")]
+            [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
+            [Display(Name = "Email")]
             public string Email { get; set; } = "";
 
-            [Required, DataType(DataType.Password)]
+            [Required(ErrorMessage = "Password is required.")]
+            [DataType(DataType.Password)]
+            [Display(Name = "Password")]
             public string Password { get; set; } = "";
 
             public bool RememberMe { get; set; }
+            public string? RecaptchaToken { get; set; }
+
         }
 
         public void OnGet(string? reason = null)
@@ -48,12 +62,27 @@ namespace BookwormsOnline.Pages
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid) return Page();
+            var (ok, score, error) = await _recaptcha.VerifyAsync(
+                Input.RecaptchaToken ?? "",
+                expectedAction: "login",
+                remoteIp: HttpContext.Connection.RemoteIpAddress?.ToString()
+            );
+
+            if (!ok)
+            {
+                PolicyError = error ?? "Suspicious activity detected. Please try again.";
+                return Page();
+            }
+
+
+            // Normalize common input mistakes
+            Input.Email = (Input.Email ?? "").Trim();
 
             var user = await _userManager.FindByEmailAsync(Input.Email);
             if (user == null)
             {
                 await LogAsync(null, Input.Email, "LOGIN", false, "Unknown email");
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                PolicyError = "Invalid login attempt.";
                 return Page();
             }
 
@@ -71,7 +100,7 @@ namespace BookwormsOnline.Pages
                 if (freshUser == null)
                 {
                     await LogAsync(null, Input.Email, "LOGIN", false, "User missing after sign-in");
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    PolicyError = "Invalid login attempt.";
                     return Page();
                 }
 
@@ -88,7 +117,7 @@ namespace BookwormsOnline.Pages
                     freshUser = await _userManager.FindByIdAsync(user.Id);
                     if (freshUser == null)
                     {
-                        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                        PolicyError = "Invalid login attempt.";
                         return Page();
                     }
 
@@ -103,22 +132,20 @@ namespace BookwormsOnline.Pages
                 return RedirectToPage("/Index");
             }
 
-
             if (result.RequiresTwoFactor)
             {
                 return RedirectToPage("/Login2FA", new { email = Input.Email, rememberMe = Input.RememberMe });
             }
 
-
             if (result.IsLockedOut)
             {
                 await LogAsync(user.Id, user.Email, "LOGIN", false, "Locked out");
-                ModelState.AddModelError(string.Empty, "Account locked due to multiple failed attempts. Try again later.");
+                PolicyError = "Account locked due to multiple failed attempts. Try again later.";
                 return Page();
             }
 
             await LogAsync(user.Id, user.Email, "LOGIN", false, "Bad password");
-            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            PolicyError = "Invalid login attempt.";
             return Page();
         }
 

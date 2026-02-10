@@ -14,7 +14,8 @@
             </div>
 
             <div class="card-body p-4">
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" id="registerForm" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
 
                     <div class="row g-3">
@@ -71,14 +72,16 @@
 
                         <div class="col-md-6">
                             <label asp-for="Input.Password" class="form-label"></label>
-                            <input asp-for="Input.Password" class="form-control" id="pw" placeholder="Strong password" />
+                            <input asp-for="Input.Password" type="password" class="form-control" id="pw"
+                                   placeholder="Strong password" autocomplete="new-password" />
                             <span asp-validation-for="Input.Password" class="text-danger small"></span>
                             <div id="pwHelp" class="form-text"></div>
                         </div>
 
                         <div class="col-md-6">
                             <label asp-for="Input.ConfirmPassword" class="form-label"></label>
-                            <input asp-for="Input.ConfirmPassword" class="form-control" placeholder="Repeat password" />
+                            <input asp-for="Input.ConfirmPassword" type="password" class="form-control"
+                                   placeholder="Repeat password" autocomplete="new-password" />
                             <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
                         </div>
                     </div>
@@ -109,7 +112,8 @@
     <script>
         const pw = document.getElementById("pw");
         const help = document.getElementById("pwHelp");
-        const form = document.querySelector("form");
+        const form = document.getElementById("registerForm");
+
 
         pw.addEventListener("input", () => {
             const p = pw.value;
