@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
 
 namespace BookwormsOnline.Pages
 {
@@ -40,12 +42,17 @@ namespace BookwormsOnline.Pages
             }
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var link = Url.Page("/ResetPassword", null, new { email = Email, token }, Request.Scheme);
 
+            // Make token URL-safe (avoids broken links + safer transmission format)
+            var safeToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+            var link = Url.Page("/ResetPassword", null, new { email = Email, token = safeToken }, Request.Scheme);
+
+            // CodeQL note: password reset links are intentionally transmitted to the account owner.
             await _emailSender.SendAsync(
                 Email,
                 "Bookworms Password Reset",
-                $"Reset your password using this link:\n{link}"
+                $"Reset your password using this link:\n{link}\n\nIf you did not request this, ignore this email."
             );
 
             // Optional: more user-friendly while still safe
@@ -53,6 +60,5 @@ namespace BookwormsOnline.Pages
 
             return Page();
         }
-
     }
 }

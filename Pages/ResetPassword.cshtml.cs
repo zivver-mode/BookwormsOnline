@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
@@ -138,7 +140,8 @@ namespace BookwormsOnline.Pages
                 }
             }
 
-            var result = await _userManager.ResetPasswordAsync(user, Input.Token, Input.NewPassword);
+            var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Input.Token));
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, Input.NewPassword);
             if (!result.Succeeded)
             {
                 foreach (var e in result.Errors)
