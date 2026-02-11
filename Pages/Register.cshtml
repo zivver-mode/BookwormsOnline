@@ -1,4 +1,4 @@
-@page
+﻿@page
 @inject IConfiguration Config
 @model BookwormsOnline.Pages.RegisterModel
 @{
@@ -58,7 +58,7 @@
 
                         <div class="col-md-6">
                             <label asp-for="Input.CreditCard" class="form-label"></label>
-                            <input asp-for="Input.CreditCard" class="form-control" inputmode="numeric" placeholder="12�19 digits" />
+                            <input asp-for="Input.CreditCard" class="form-control" inputmode="numeric" placeholder="12–19 digits" />
                             <span asp-validation-for="Input.CreditCard" class="text-danger small"></span>
                             <div class="form-text">Stored encrypted in the database.</div>
                         </div>
@@ -72,11 +72,20 @@
 
                         <div class="col-md-6">
                             <label asp-for="Input.Password" class="form-label"></label>
-                            <input asp-for="Input.Password" type="password" class="form-control" id="pw"
-                                   placeholder="Strong password" autocomplete="new-password" />
+                            <input asp-for="Input.Password" class="form-control" id="pw" placeholder="Strong password" />
                             <span asp-validation-for="Input.Password" class="text-danger small"></span>
-                            <div id="pwHelp" class="form-text"></div>
+
+                            <div class="mt-2">
+                                <div class="progress" style="height: 6px;">
+                                    <div id="pwBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <small id="pwStrengthText" class="text-muted">Strength: —</small>
+                                    <small id="pwRulesText" class="text-muted"></small>
+                                </div>
+                            </div>
                         </div>
+
 
                         <div class="col-md-6">
                             <label asp-for="Input.ConfirmPassword" class="form-label"></label>
@@ -111,22 +120,66 @@
 
     <script>
         const pw = document.getElementById("pw");
-        const help = document.getElementById("pwHelp");
+        const pwBar = document.getElementById("pwBar");
+        const pwStrengthText = document.getElementById("pwStrengthText");
+        const pwRulesText = document.getElementById("pwRulesText");
+
+        function scorePassword(p) {
+            let score = 0;
+            const rules = {
+                len: p.length >= 12,
+                upper: /[A-Z]/.test(p),
+                lower: /[a-z]/.test(p),
+                digit: /\d/.test(p),
+                special: /[^A-Za-z0-9]/.test(p)
+            };
+
+            // Score based on your actual policy (0..5)
+            score += rules.len ? 1 : 0;
+            score += rules.upper ? 1 : 0;
+            score += rules.lower ? 1 : 0;
+            score += rules.digit ? 1 : 0;
+            score += rules.special ? 1 : 0;
+
+            return { score, rules };
+        }
+
+        function renderStrength(p) {
+            const { score, rules } = scorePassword(p);
+
+            // Map score to label + percent
+            let label = "Weak";
+            let percent = 20;
+
+            if (score <= 1) { label = "Very weak"; percent = 10; }
+            else if (score === 2) { label = "Weak"; percent = 25; }
+            else if (score === 3) { label = "Fair"; percent = 50; }
+            else if (score === 4) { label = "Strong"; percent = 75; }
+            else if (score === 5) { label = "Very strong"; percent = 100; }
+
+            pwBar.style.width = percent + "%";
+            pwStrengthText.textContent = `Strength: ${p.length === 0 ? "—" : label}`;
+
+            // Show which rules are missing (minimal)
+            const missing = [];
+            if (!rules.len) missing.push("12+ chars");
+            if (!rules.upper) missing.push("uppercase");
+            if (!rules.lower) missing.push("lowercase");
+            if (!rules.digit) missing.push("number");
+            if (!rules.special) missing.push("special");
+
+            pwRulesText.textContent = missing.length ? `Missing: ${missing.join(", ")}` : "Meets policy ✓";
+        }
+
+        pw.addEventListener("input", () => renderStrength(pw.value));
+        renderStrength("");
+    </script>
+    <script>
         const form = document.getElementById("registerForm");
-
-
-        pw.addEventListener("input", () => {
-            const p = pw.value;
-            const len = p.length >= 12;
-            const upper = /[A-Z]/.test(p);
-            const lower = /[a-z]/.test(p);
-            const digit = /\d/.test(p);
-            const special = /[^A-Za-z0-9]/.test(p);
-            help.textContent = `Min12: ${len} | Upper: ${upper} | Lower: ${lower} | Num: ${digit} | Special: ${special}`;
-        });
 
         form.addEventListener("submit", function (e) {
             e.preventDefault();
+
             grecaptcha.ready(function () {
                 grecaptcha.execute("@Config["Recaptcha:SiteKey"]", { action: "register" })
                     .then(function (token) {
@@ -136,4 +189,6 @@
             });
         });
     </script>
+
+
 }

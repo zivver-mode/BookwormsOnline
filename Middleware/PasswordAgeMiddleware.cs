@@ -22,11 +22,24 @@ namespace BookwormsOnline.Middleware
                     var user = await userManager.GetUserAsync(context.User);
                     if (user != null)
                     {
-                        var maxAgeDays = int.TryParse(config["PasswordPolicy:MaxAgeDays"], out var d) ? d : 30;
-                        if (DateTime.UtcNow - user.PasswordLastChangedUtc > TimeSpan.FromDays(maxAgeDays))
+                        // Prefer minutes if configured (useful for testing); fallback to days for backward compatibility.
+                        var hasMaxMinutes = int.TryParse(config["PasswordPolicy:MaxAgeMinutes"], out var maxMinutes) && maxMinutes > 0;
+                        if (hasMaxMinutes)
                         {
-                            context.Response.Redirect("/ChangePassword?reason=expired");
-                            return;
+                            if (DateTime.UtcNow - user.PasswordLastChangedUtc > TimeSpan.FromMinutes(maxMinutes))
+                            {
+                                context.Response.Redirect("/ChangePassword?reason=expired");
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            var maxAgeDays = int.TryParse(config["PasswordPolicy:MaxAgeDays"], out var d) ? d : 30;
+                            if (DateTime.UtcNow - user.PasswordLastChangedUtc > TimeSpan.FromDays(maxAgeDays))
+                            {
+                                context.Response.Redirect("/ChangePassword?reason=expired");
+                                return;
+                            }
                         }
                     }
                 }

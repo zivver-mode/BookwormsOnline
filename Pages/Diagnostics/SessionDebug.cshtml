@@ -1,0 +1,48 @@
+@page
+@model BookwormsOnline.Pages.Diagnostics.SessionDebugModel
+
+<h3>Session / Cookie debug</h3>
+
+<p><strong>Server UTC:</strong> @Model.ServerUtcNow.ToString("u")</p>
+<p><strong>Request.IsHttps:</strong> @Model.IsHttps</p>
+
+<h4>Request cookies</h4>
+@if (Model.RequestCookies.Count == 0)
+{
+    <div><em>No request cookies</em></div>
+}
+else
+{
+    <table class="table table-sm">
+        <thead><tr><th>Name</th><th>Value (truncated)</th></tr></thead>
+        <tbody>
+            @foreach (var c in Model.RequestCookies)
+            {
+                <tr><td>@c.Key</td><td>@(c.Value?.Length > 100 ? c.Value.Substring(0, 100) + "…" : c.Value)</td></tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h4>Session</h4>
+<p><strong>SessionToken (from session):</strong> @Model.SessionToken</p>
+<p><strong>Session read/write OK:</strong> @Model.SessionReadWriteOk</p>
+@if (!string.IsNullOrEmpty(Model.SessionError))
+{
+    <pre>@Model.SessionError</pre>
+}
+
+@if (!string.IsNullOrEmpty(Model.Email))
+{
+    <h4>User lookup (@Model.Email)</h4>
+    @if (!Model.UserFound)
+    {
+        <div><em>User not found</em></div>
+    }
+    else
+    {
+        <p><strong>ActiveSessionToken (DB):</strong> @Model.ActiveSessionToken</p>
+    }
+}
+
+<p>Compare the SessionToken and ActiveSessionToken — they must match for the session to stay valid.</p>

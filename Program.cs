@@ -5,6 +5,7 @@ using BookwormsOnline.Services;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,14 +15,17 @@ builder.Services.AddRazorPages();
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("AuthConnectionString"))
 );
-
-// Session (timeout requirement)
 builder.Services.AddDistributedMemoryCache();
+
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(5);
-    options.Cookie.SameSite = SameSiteMode.Strict;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.IdleTimeout = TimeSpan.FromMinutes(1);
+    // Lax lets the session cookie be sent on POST->redirect, unlike Strict
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    // Allow non-HTTPS local testing; keep Always in production
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
@@ -38,7 +42,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 
     // Lockout after 3 failures
     options.Lockout.MaxFailedAccessAttempts = 3;
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(1);
     options.Lockout.AllowedForNewUsers = true;
 })
 .AddEntityFrameworkStores<AuthDbContext>()
@@ -48,10 +52,15 @@ builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Login";
     options.AccessDeniedPath = "/Account/AccessDenied";
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
-    options.SlidingExpiration = true;
+    // Give a practical expiry so users aren't immediately signed out
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(1);
+    options.SlidingExpiration = false;
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    // Match session policy during development to avoid cookie rejection
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 });
 
 builder.Services.AddScoped<AesEncryptionService>();
@@ -62,7 +71,6 @@ builder.Services.Configure<FormOptions>(o =>
     o.MultipartBodyLengthLimit = 2 * 1024 * 1024; // 2MB
 });
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
-
 
 var app = builder.Build();
 

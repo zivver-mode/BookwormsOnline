@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Net;
 
 namespace BookwormsOnline.Pages
 {
@@ -29,6 +31,16 @@ namespace BookwormsOnline.Pages
             _crypto = crypto;
             _env = env;
             _recaptcha = recaptcha;
+        }
+        private static string Sanitize(string? s)
+        {
+            // Trim + HTML encode to reduce risk of stored XSS if later rendered unsafely
+            // Razor encodes by default, but this is an extra defensive layer.
+            s ??= "";
+            s = s.Trim();
+
+            // HTML-encode (<, >, ", ', &) so stored values can’t execute as HTML/JS if ever output raw.
+            return WebUtility.HtmlEncode(s);
         }
 
         [BindProperty]
@@ -69,7 +81,6 @@ namespace BookwormsOnline.Pages
             public IFormFile Photo { get; set; } = default!;
 
             // reCAPTCHA v3 token
-            [Required]
             public string RecaptchaToken { get; set; } = "";
         }
 
@@ -78,6 +89,14 @@ namespace BookwormsOnline.Pages
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid) return Page();
+            // Defensive encoding/sanitization (stored XSS prevention)
+            Input.FirstName = Sanitize(Input.FirstName);
+            Input.LastName = Sanitize(Input.LastName);
+            Input.Email = (Input.Email ?? "").Trim(); // keep email normal (Identity expects real email)
+            Input.MobileNo = (Input.MobileNo ?? "").Trim();
+            Input.BillingAddress = Sanitize(Input.BillingAddress);
+            Input.ShippingAddress = Sanitize(Input.ShippingAddress);
+
 
             // reCAPTCHA v3 verify
             var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
